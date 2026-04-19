@@ -592,19 +592,19 @@ function ProductCard({
                 <button 
                   disabled={disabled}
                   onClick={(e) => { e.stopPropagation(); onSelect(); }}
-                  className={`w-full py-2 px-4 border rounded-[3px] text-[14px] font-bold transition-all sm:min-w-[130px] flex items-center justify-center gap-1.5 group/btn ${isSelected ? 'bg-ink text-white border-ink' : 'bg-white text-ink border-line hover:bg-zinc-50 active:translate-y-[1px]'} ${disabled ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
+                  className={`w-full py-2 px-4 border rounded-[3px] text-[14px] font-bold transition-all sm:min-w-[130px] flex items-center justify-center gap-1.5 group/btn ${isSelected ? 'bg-white text-ink border-line hover:bg-zinc-50' : 'bg-ink text-white border-ink hover:opacity-90 active:translate-y-[1px]'} ${disabled ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
                 >
                   {isSelected ? (
                     isMobile ? (
                       <>
                         <Check className="w-4 h-4" />
-                        <span>已選擇比較</span>
+                        <span>已加入比較</span>
                       </>
                     ) : (
                       <>
                         <div className="flex items-center gap-1.5 group-hover/btn:hidden">
                           <Check className="w-4 h-4" />
-                          <span>已選擇比較</span>
+                          <span>已加入比較</span>
                         </div>
                         <div className="hidden items-center gap-1.5 group-hover/btn:flex">
                           <X className="w-4 h-4" />
@@ -613,10 +613,7 @@ function ProductCard({
                       </>
                     )
                   ) : (
-                    <>
-                      <Plus className="w-4 h-4" />
-                      <span>加入比較</span>
-                    </>
+                    '比較給付項目'
                   )}
                 </button>
                 
@@ -859,66 +856,84 @@ function ComparisonModal({
     });
   };
 
+  useEffect(() => {
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   const modalContent = (
     <div className={`bg-white border-1 border-line flex flex-col ${isMobile ? 'w-full h-full' : 'w-full max-w-[1000px] max-h-[85vh]'} brutal-shadow relative overflow-hidden`}>
-      {/* Fixed UI Header (Optional Desktop Sticky) */}
+      {/* Modal Header: Now outside the scroll container to be fixed at top */}
+      <header className="flex items-center justify-between p-3 px-4 border-b border-line bg-white z-[110]">
+        <div className="flex items-center gap-4">
+          <h2 className="font-bold text-base">比較給付項目</h2>
+          
+          {!isMobile && (
+            <label className="flex items-center gap-2 cursor-pointer select-none transition-opacity hover:opacity-80 active:scale-95 ml-2">
+              <div 
+                  onClick={(e) => { e.stopPropagation(); setDiffOnly(!diffOnly); }}
+                  className={`w-8 h-4.5 rounded-full border border-line relative transition-colors ${diffOnly ? 'bg-ink' : 'bg-white'}`}
+              >
+                <motion.div 
+                  animate={{ left: diffOnly ? 14 : 2 }}
+                  className={`absolute top-[1px] w-3 h-3 rounded-full border border-line-soft ${diffOnly ? 'bg-white' : 'bg-ink-muted'}`} 
+                />
+              </div>
+              <span className="text-[14px] font-bold whitespace-nowrap text-ink">只看差異</span>
+            </label>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
       <div 
         ref={scrollContainerRef}
         onScroll={isMobile ? handleScroll : undefined}
-        className="flex-1 overflow-y-auto overflow-x-hidden bg-white no-scrollbar pb-40"
+        className={`flex-1 overflow-y-auto ${isMobile ? 'overflow-x-hidden' : 'overflow-x-auto'} bg-white no-scrollbar pb-40`}
       >
-        {/* UI Header - Now inside scroll container to scroll away */}
-        <header className="flex items-center justify-between p-3 px-4 border-b border-line bg-white">
-          <div className="flex items-center gap-3">
-            <button onClick={onClose} className="p-1 -ml-1 hover:bg-gray-100 rounded-full transition-colors">
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <h2 className="font-bold text-base">比較給付項目</h2>
-          </div>
-          {!isMobile && (
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer select-none px-2.5 py-1.5 bg-panel rounded-full border border-line-soft transition-colors hover:bg-gray-100 active:scale-95">
-                <div 
-                   onClick={(e) => { e.stopPropagation(); setDiffOnly(!diffOnly); }}
-                   className={`w-8 h-4.5 rounded-full border border-line relative transition-colors ${diffOnly ? 'bg-ink' : 'bg-white'}`}
+        <table className="w-full border-separate border-spacing-0 table-fixed">
+          {isMobile ? (
+            <colgroup>
+              {columns.map((_, i) => (
+                <col key={i} style={{ width: `${100 / columns.length}%` }} />
+              ))}
+            </colgroup>
+          ) : (
+            <colgroup>
+              <col style={{ width: '180px' }} />
+              {columns.map((_, i) => (
+                <col key={i} style={{ width: '180px' }} />
+              ))}
+            </colgroup>
+          )}
+
+          {/* Table Head: Product Names (Sticky Level 1) */}
+          <thead ref={headerRef} className="sticky top-0 z-[100]">
+            <tr className="bg-white shadow-sm">
+              {!isMobile && (
+                <th className="w-[180px] bg-[#fafafa] border-r border-b border-line-soft p-3 text-left text-ink-muted text-[11px] font-bold align-middle">
+                  給付項目
+                </th>
+              )}
+              {columns.map((p) => (
+                <th 
+                  key={p.id} 
+                  className={`bg-white border-b border-line-soft p-2 sm:p-4 text-left font-bold leading-tight text-ink ${isMobile ? 'border-r border-line-soft last:border-r-0 text-[16px] whitespace-normal' : 'w-[180px] text-[16px]'}`}
                 >
-                  <motion.div 
-                    animate={{ left: diffOnly ? 14 : 2 }}
-                    className={`absolute top-[1px] w-3 h-3 rounded-full border border-line-soft ${diffOnly ? 'bg-white' : 'bg-ink-muted'}`} 
-                  />
-                </div>
-                <span className="text-[11px] font-bold whitespace-nowrap text-ink">只看差異</span>
-              </label>
-              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-        </header>
+                  {p.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
 
-        {/* Level 1 Sticky: Product Names (Universal Desktop/Mobile) */}
-        <div 
-          ref={headerRef}
-          className="sticky top-0 z-[100] flex bg-white border-b border-line-soft shadow-sm"
-        >
-          {!isMobile && (
-            <div className="w-[180px] bg-[#fafafa] border-r border-line-soft p-3 text-left text-ink-muted text-[11px] font-bold self-center">
-              給付項目
-            </div>
-          )}
-          {columns.map((p) => (
-            <div 
-              key={p.id} 
-              className={`flex flex-col justify-start p-3 sm:p-4 text-left ${isMobile ? 'flex-1 border-r border-line-soft last:border-r-0' : 'w-[180px]'}`}
-            >
-              <div className="font-bold text-[16px] sm:text-[13px] leading-tight text-ink">
-                {p.name}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <table className="w-full border-separate border-spacing-0 table-fixed sm:min-w-[600px]">
           {tableData.map((bg: any) => {
             const visibleItems = diffOnly ? bg.items.filter((it: any) => it.isDiff) : bg.items;
             if (visibleItems.length === 0) return null;
@@ -965,7 +980,7 @@ function ComparisonModal({
                               return (
                                 <td 
                                   key={i} 
-                                  className={`border-b border-line-soft p-5 align-top text-center text-[18px] leading-snug ${isBest ? 'text-blue-600 font-normal' : 'text-ink font-normal'}`}
+                                  className={`border-b border-line-soft p-3 align-top text-center text-[16px] leading-snug ${isBest ? 'text-blue-600 font-bold' : 'text-ink font-normal'}`}
                                 >
                                   {v === '—' ? <span className="text-ink-muted">—</span> : v}
                                 </td>
@@ -975,7 +990,7 @@ function ComparisonModal({
                         </>
                       ) : (
                         <tr>
-                          <td className="sticky left-0 z-10 bg-[#fafafa] border-r border-line-soft border-b border-line-soft p-3 px-4 font-normal text-[14px] leading-snug">
+                          <td className="sticky left-0 z-10 bg-[#fafafa] border-r border-line-soft border-b border-line-soft p-3 px-4 font-normal text-[16px] leading-snug w-[180px] min-w-[180px]">
                             {it.k}
                           </td>
                           {it.vals.map((v: string, i: number) => {
@@ -983,7 +998,7 @@ function ComparisonModal({
                             return (
                               <td 
                                 key={i} 
-                                className="bg-white border-b border-line-soft p-3 px-4 text-[13px] leading-snug"
+                                className="bg-white border-b border-line-soft p-3 px-4 text-[16px] leading-snug w-[180px] min-w-[180px]"
                               >
                                 {v === '—' ? <span className="text-ink-muted">—</span> : (
                                   <span className={isBest ? 'text-blue-600 font-normal' : 'font-normal'}>{v}</span>
@@ -1030,21 +1045,6 @@ function ComparisonModal({
                 exit={{ y: 100, opacity: 0 }}
                 className="fixed bottom-8 left-0 right-0 z-[70] flex items-center justify-center gap-3 px-6 pointer-events-none"
               >
-                {/* Back Button Island - Only show when distance from top > 80 */}
-                <AnimatePresence mode="popLayout">
-                  {lastScrollY > 80 && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                      onClick={onClose}
-                      className="w-12 h-12 shrink-0 aspect-square bg-white/95 backdrop-blur-md shadow-[0_15px_35px_rgba(0,0,0,0.15)] rounded-full flex items-center justify-center border border-zinc-100 active:scale-90 transition-transform pointer-events-auto"
-                    >
-                      <ChevronLeft className="w-6 h-6 text-zinc-900" />
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-
                 {/* Main Tool Island */}
                 <motion.div 
                   layout
@@ -1097,7 +1097,7 @@ function ComparisonModal({
 
   return (
     <div 
-      className={`fixed inset-0 z-[100] flex items-start justify-center ${isMobile ? 'bg-white' : 'p-4 bg-black/45 backdrop-blur-sm pt-8 sm:pt-16 overflow-auto'}`} 
+      className={`fixed inset-0 z-[100] flex items-start justify-center no-scrollbar ${isMobile ? 'bg-white overscroll-none' : 'p-4 bg-black/45 backdrop-blur-sm pt-8 sm:pt-16 overflow-auto'}`} 
       onClick={(e) => !isMobile && e.target === e.currentTarget && onClose()}
     >
       {modalContent}
